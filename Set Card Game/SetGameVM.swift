@@ -11,17 +11,25 @@ import SwiftUI
 class SetGameVM: ObservableObject {
     @Published private var model = SetGame()
     
-    func generateNewGame() {
-        model = SetGame()
-    }
-    
     // MARK: - Access to the Model
     var deck: Array<SetGame.Card> {
         model.deck
     }
     
+    var table: Array<SetGame.Card> {
+        model.deck.filter({$0.onTable})
+    }
+    
     // MARK: - Intent(s)
-    func select(card: SetGame.Card) {
+    func select(_ card: SetGame.Card) {
         model.selectCard(card)
+    }
+    
+    func draw3moreCards() {
+        model.draw3moreCards()
+    }
+
+    func generateNewGame() {
+        model = SetGame()
     }
 }

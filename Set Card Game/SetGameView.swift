@@ -12,9 +12,42 @@ struct SetGameView: View {
     @ObservedObject var viewModel: SetGameVM
     
     var body: some View {
-        Grid (viewModel.deck.filter({$0.onTable})){ card in
-            CardView(card: card)
-        } .padding(5)
+        VStack {
+            ZStack{
+                Text("Set")
+                    .font(Font.bold(Font.largeTitle)())
+                    .padding().shadow(color: Color(.displayP3, red: 0, green: 0, blue: 0, opacity: 0.2), radius: 1, x: 5, y: 5)
+                
+                HStack {
+                        Spacer()
+                        
+                        Button(action: {
+                            withAnimation(.easeInOut){
+                                self.viewModel.generateNewGame()
+                            }
+                        }, label: {
+                            Text("New Game").font(Font.body)
+                        })
+                            .padding()
+                }
+            }
+
+            
+            Grid (viewModel.table){ card in
+                CardView(card: card).onTapGesture {
+                    self.viewModel.select(card)
+                }
+            }
+            
+            Button(action: {
+                withAnimation(.easeInOut){
+                    self.viewModel.draw3moreCards()
+                }
+            }, label: {
+                Text("Draw New Cards")
+            })
+                .opacity(viewModel.table.count < viewModel.deck.count ? 1 : 0).padding()
+        }
     }
 }
 
@@ -22,43 +55,61 @@ struct CardView: View {
     var card: SetGame.Card
 
     var body: some View {
-        cardBody()
+        GeometryReader{ geometry in
+            self.cardBody(for: geometry.size)
+        }
     }
     
-    func cardBody() -> some View {
+    @ViewBuilder
+    private func cardBody(for size: CGSize) -> some View {
         ZStack {
+            
             RoundedRectangle(cornerRadius: 10)
                 .foregroundColor(Color.white)
-                .shadow(radius: 2)
-            VStack {
+                .shadow(radius: 3)
+            
+            HStack {
                 ForEach(0..<card.Count){ i in
                     self.cardShape()
                         .foregroundColor(self.cardColor())
                 }
+            }.padding((card.Count < 3) ? 10 : 6)
+            
+            if (card.isSelected){
+                if (card.isSet){
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(lineWidth: 5)
+                        .foregroundColor(Color.green)
+                } else if (card.wrongMatching){
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(lineWidth: 5)
+                        .foregroundColor(Color.red)
+                } else {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(lineWidth: 5)
+                        .foregroundColor(Color.yellow)
+                }
             }
-        }
-        .aspectRatio(4/5, contentMode: .fit)
-        .padding(5)
+            } .aspectRatio(1, contentMode: .fit).padding(5)
     }
     
     func cardShape() -> AnyView {
         switch card.Shape {
-            case "capulse": return AnyView(
-                Capsule(style: .continuous)
-                    .aspectRatio(2.5/1, contentMode: .fit)
-                    .padding(12)
-                )
-            case "square": return AnyView(
-                Rectangle()
-                    .aspectRatio(1, contentMode: .fit)
-                    .padding(12)
-            )
-            case "circle": return AnyView(
-                Circle()
-                    .stroke(lineWidth: 5)
-                    .padding(12)
-            )
+        case "capulse": return AnyView(getShading(shape: Capsule()).aspectRatio(1/2, contentMode: .fit))
+            case "square": return AnyView(getShading(shape: Rectangle()).aspectRatio(1, contentMode: .fit))
+            case "circle": return getShading(shape: Circle())
             default: return AnyView(Text("\(card.Shape)"))
+        }
+    }
+    
+    func getShading<s: Shape>(shape: s) -> AnyView {
+        switch card.Shading {
+        case "outline":
+            return AnyView(shape.stroke(lineWidth: 2))
+        case "transparent":
+            return AnyView(shape.opacity(0.5))
+        default:
+            return AnyView(shape)
         }
     }
     

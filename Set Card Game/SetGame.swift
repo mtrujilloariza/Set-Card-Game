@@ -21,7 +21,7 @@ struct SetGame {
     }
     
     enum Shading: String, CaseIterable{
-        case solid, outline, striped
+        case solid, outline, transparent
     }
     
     init(){
@@ -38,10 +38,9 @@ struct SetGame {
                 }
             }
         }
-        print(deck.count)
         deck.shuffle()
         
-        for index in 0...12 {
+        for index in 0..<12 {
             deck[index].onTable = true
         }
     }
@@ -53,7 +52,7 @@ struct SetGame {
         
         if selectedCardsIndices.count < 3 {
             deck[indexOfCard].isSelected = !deck[indexOfCard].isSelected
-            selectedCardsIndices.append(indexOfCard)
+            selectedCardsIndices = deck.indices.filter{ deck[$0].isSelected }
             
             if selectedCardsIndices.count == 3 {
                 if isSet(selectedCardsIndices) {
@@ -69,64 +68,109 @@ struct SetGame {
             
         } else {
             
-            deck[indexOfCard].isSelected = !deck[indexOfCard].isSelected
-
-            if isSet(selectedCardsIndices) {
-                for index in selectedCardsIndices {
-                    deck.remove(at: index)
-                }
+            if (!selectedCardsIndices.contains(indexOfCard)){
+                deck[indexOfCard].isSelected = !deck[indexOfCard].isSelected
                 
-                drawNewCards()
-            } else {
-                for index in selectedCardsIndices {
-                     deck[index].isSelected = false
-                 }
+                if isSet(selectedCardsIndices) {
+                    for index in selectedCardsIndices.reversed() {
+                        deck.remove(at: index)
+                    }
+                    draw3moreCards()
+                } else {
+                    for index in selectedCardsIndices {
+                         deck[index].isSelected = false
+                        deck[index].wrongMatching = false
+                        deck[index].isSet = false
+                     }
+                }
             }
-
         }
     }
     
     func isSet(_ selectedIndices: Array<Int>) -> Bool {
-        var categoryCount = 0
+        var matchingCount = 0
+        var uniqueCount = 0
         
-        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Color }) { categoryCount += 1 }
-        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Shape }) { categoryCount += 1 }
-        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Shading }) { categoryCount += 1 }
-        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Count }) { categoryCount += 1 }
+        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Color }) { matchingCount += 1 }
+        if  uniqueCategories(selectedIndices, categoryFunction: { deck[$0].Color }) { uniqueCount += 1 }
         
-        if categoryCount == 1 { return true }
+        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Shape }) { matchingCount += 1 }
+        if  uniqueCategories(selectedIndices, categoryFunction: { deck[$0].Shape }) { uniqueCount += 1 }
+        
+        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Shading }) { matchingCount += 1 }
+        if  uniqueCategories(selectedIndices, categoryFunction: { deck[$0].Shading }) { uniqueCount += 1 }
+        
+        if  matchingCategories(selectedIndices, categoryFunction: { deck[$0].Count }) { matchingCount += 1 }
+        if  uniqueCategories(selectedIndices, categoryFunction: { deck[$0].Count }) { uniqueCount += 1 }
+        
+        if matchingCount == 1 && uniqueCount == 3 { return true }
         
         return false
     }
     
-    mutating func drawNewCards() {
-        if deck.count >= 12 {
-            for index in 0...12 {
-                deck[index].onTable = true
-            }
-        }
-    }
-        
     func matchingCategories<C: Equatable>(_ selectedIndices: Array<Int>, categoryFunction getValue: (Int) -> C) -> Bool {
-        let fistValue = getValue(selectedIndices.first!)
+        if (selectedIndices.count < 3 ){
+            return false
+        }
         
-        for index in selectedIndices {
-            if getValue(index) != fistValue {
+        let firstValue = getValue(selectedIndices.first!)
+        
+        for index in 1..<selectedIndices.count {
+            if getValue(selectedIndices[index]) != firstValue {
                 return false
             }
+        }
+        
+        if getValue(selectedIndices[1]) != getValue(selectedIndices[2]) {
+            return false
         }
         
         return true
     }
     
+    func uniqueCategories<C: Equatable>(_ selectedIndices: Array<Int>, categoryFunction getValue: (Int) -> C) -> Bool {
+        if(selectedIndices.count < 3) {
+            return false
+        }
+        
+        let firstValue = getValue(selectedIndices.first!)
+
+        for index in 1..<selectedIndices.count {
+          if getValue(selectedIndices[index]) == firstValue {
+              return false
+          }
+        }
+
+        if getValue(selectedIndices[1]) == getValue(selectedIndices[2]) {
+          return false
+        }
+          
+        return true
+      }
     
+    mutating func draw3moreCards() {
+        
+        let selectedCardsIndices = deck.indices.filter{ deck[$0].isSelected }
+        
+        if isSet(selectedCardsIndices) {
+            for index in selectedCardsIndices.reversed() {
+                deck.remove(at: index)
+            }
+            draw3moreCards()
+        } else if ((deck.filter{ $0.onTable }.count) < deck.count){
+            for index in 0..<(deck.filter{ $0.onTable }.count + 3) {
+                deck[index].onTable = true
+            }
+        }
+    }
+        
     struct Card: Equatable, Identifiable{
         var Color: String
         var Shape: String
         var Shading: String
         var Count: Int
         var isSelected: Bool = false
-        var isSet: Bool = true
+        var isSet: Bool = false
         var wrongMatching: Bool = false
         var onTable: Bool = false
         var id: Int
