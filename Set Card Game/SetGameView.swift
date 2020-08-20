@@ -96,7 +96,7 @@ struct CardView: View {
     func cardShape() -> AnyView {
         switch card.Shape {
         case "capulse": return AnyView(getShading(shape: Capsule()).aspectRatio(1/2, contentMode: .fit))
-            case "square": return AnyView(getShading(shape: Rectangle()).aspectRatio(1, contentMode: .fit))
+            case "diamond": return AnyView(getShading(shape: Diamond()).aspectRatio(1/2, contentMode: .fit))
             case "circle": return getShading(shape: Circle())
             default: return AnyView(Text("\(card.Shape)"))
         }

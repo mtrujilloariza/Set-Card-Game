@@ -17,7 +17,7 @@ struct SetGame {
     }
     
     enum Shape: String, CaseIterable {
-        case square, capulse, circle
+        case diamond, capulse, circle
     }
     
     enum Shading: String, CaseIterable{
@@ -72,10 +72,7 @@ struct SetGame {
                 deck[indexOfCard].isSelected = !deck[indexOfCard].isSelected
                 
                 if isSet(selectedCardsIndices) {
-                    for index in selectedCardsIndices.reversed() {
-                        deck.remove(at: index)
-                    }
-                    draw3moreCards()
+                    replaceCards(selectedCardsIndices)
                 } else {
                     for index in selectedCardsIndices {
                          deck[index].isSelected = false
@@ -150,16 +147,30 @@ struct SetGame {
     
     mutating func draw3moreCards() {
         
-        let selectedCardsIndices = deck.indices.filter{ deck[$0].isSelected }
+        let selectedIndices = deck.indices.filter{ deck[$0].isSelected }
         
-        if isSet(selectedCardsIndices) {
-            for index in selectedCardsIndices.reversed() {
-                deck.remove(at: index)
-            }
-            draw3moreCards()
+        if isSet(selectedIndices) {
+            replaceCards(selectedIndices)
         } else if ((deck.filter{ $0.onTable }.count) < deck.count){
             for index in 0..<(deck.filter{ $0.onTable }.count + 3) {
                 deck[index].onTable = true
+            }
+        }
+    }
+    
+    mutating func replaceCards(_ selectedIndices: Array<Int>) {
+        
+        let tableIncdices = deck.indices.filter{ deck[$0].onTable }
+        
+        if tableIncdices.count + selectedIndices.count > deck.count {
+            for index in selectedIndices.reversed() {
+                deck.remove(at: index)
+            }
+        } else {
+            for index in selectedIndices {
+                deck.swapAt(index, deck.indices.last!)
+                deck[index].onTable = true
+                deck.remove(at: deck.indices.last!)
             }
         }
     }
